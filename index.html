@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Ascend Finance | Secure</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        :root { --bg: #ffffff; --txt: #1a1a1a; --card: rgba(0,0,0,0.05); --input-bg: rgba(0,0,0,0.05); }
+        .dark-mode { --bg: #0f0f0f; --txt: #ffffff; --card: rgba(255,255,255,0.05); --input-bg: rgba(255,255,255,0.05); }
+        body { background: var(--bg); color: var(--txt); transition: 0.3s; font-family: sans-serif; min-height: 100vh; overflow-x: hidden; }
+        .glass { background: var(--card); border: 1px solid rgba(128,128,128,0.2); border-radius: 20px; backdrop-filter: blur(10px); }
+        .hidden { display: none !important; }
+        .modal { background: rgba(0,0,0,0.98); position: fixed; inset: 0; z-index: 100; display: flex; align-items: center; justify-content: center; padding: 15px; }
+        .gold-text { color: #EAB308; }
+        input { background: var(--input-bg) !important; color: inherit !important; border: 1px solid rgba(128,128,128,0.2) !important; }
+    </style>
+</head>
+<body class="flex flex-col items-center p-4">
+
+    <div id="authSection" class="w-full max-w-md mt-6">
+        <div class="text-center mb-6">
+            <h1 class="text-3xl font-black italic">ASCEND <span class="gold-text">FINANCE</span></h1>
+            <p class="text-[10px] uppercase opacity-50 tracking-widest">Authorized Access Only</p>
+        </div>
+
+        <div id="registerBox" class="glass p-6 shadow-xl">
+            <h2 class="text-xl font-bold mb-4">Register</h2>
+            <div class="space-y-3">
+                <input id="regName" type="text" placeholder="First Name" class="w-full p-3 rounded-xl text-sm outline-none">
+                <input id="regSurname" type="text" placeholder="Surname" class="w-full p-3 rounded-xl text-sm outline-none">
+                <input id="regEmail" type="email" placeholder="Email Address" class="w-full p-3 rounded-xl text-sm outline-none">
+                <input id="regPhone" type="tel" placeholder="Phone Number" class="w-full p-3 rounded-xl text-sm outline-none">
+                <input id="regPass" type="password" placeholder="Password" class="w-full p-3 rounded-xl text-sm outline-none">
+                <button onclick="handleRegister()" class="w-full py-4 bg-yellow-500 text-black font-bold rounded-xl uppercase text-xs">Register (₦100 Bonus)</button>
+                <p class="text-center text-[10px] mt-4">Already have account? <span onclick="showLogin()" class="gold-text font-bold cursor-pointer">Login</span></p>
+            </div>
+        </div>
+
+        <div id="loginBox" class="glass p-6 shadow-xl hidden">
+            <h2 class="text-xl font-bold mb-4">Login</h2>
+            <div class="space-y-3">
+                <input id="logEmail" type="email" placeholder="Email" class="w-full p-3 rounded-xl text-sm outline-none">
+                <input id="logPass" type="password" placeholder="Password" class="w-full p-3 rounded-xl text-sm outline-none">
+                <button onclick="handleLogin()" class="w-full py-4 bg-black text-white dark:bg-white dark:text-black font-bold rounded-xl uppercase text-xs">Login</button>
+                <p class="text-center text-[10px] mt-4">New? <span onclick="showRegister()" class="gold-text font-bold cursor-pointer">Sign Up</span></p>
+            </div>
+        </div>
+    </div>
+
+    <div id="mainDashboard" class="w-full max-w-md hidden">
+        <header class="flex justify-between items-center mb-6">
+            <div onclick="adminLoginPrompt()" class="w-10 h-10 bg-black dark:bg-yellow-500 text-white dark:text-black flex items-center justify-center rounded-lg font-bold cursor-pointer shadow-lg">A</div>
+            <div class="flex gap-3">
+                <button onclick="toggleTheme()" class="w-10 h-10 glass flex items-center justify-center rounded-full text-xl">
+                    <i id="themeIcon" class="fas fa-moon"></i>
+                </button>
+                <button onclick="logout()" class="w-10 h-10 glass flex items-center justify-center rounded-full text-red-500 text-xl">
+                    <i class="fas fa-power-off"></i>
+                </button>
+            </div>
+        </header>
+
+        <div class="glass p-6 text-center mb-6">
+            <p class="text-[10px] uppercase opacity-60 mb-1">Portfolio Balance</p>
+            <h2 class="text-4xl font-black">₦<span id="balanceDisplay">0.0000</span></h2>
+            <div id="timerDisplay" class="text-xs mt-2 gold-text font-bold uppercase tracking-widest">Standby</div>
+        </div>
+
+        <div id="activationArea" class="glass p-5 mb-6">
+            <p class="text-[10px] font-bold uppercase mb-2">Unlock 31-Day Mining Access</p>
+            <div class="flex gap-2">
+                <input id="activationCode" type="text" placeholder="Enter Code" class="flex-1 p-2 rounded-lg text-xs outline-none">
+                <button onclick="activateLicense()" class="bg-yellow-500 px-4 text-xs font-bold text-black rounded-lg">ACTIVATE</button>
+            </div>
+        </div>
+
+        <div id="miningArea" class="flex flex-col items-center mb-8 hidden">
+            <button id="mineBtn" onclick="startDailyMining()" class="w-32 h-32 bg-yellow-500 rounded-full flex flex-col items-center justify-center text-black shadow-2xl font-black uppercase">
+                <i class="fas fa-bolt text-2xl mb-1"></i>
+                <span id="btnText">Start</span>
+            </button>
+            <p id="packageTag" class="text-[10px] font-bold gold-text mt-4 uppercase"></p>
+            <p id="expiryInfo" class="text-[9px] opacity-50 uppercase"></p>
+        </div>
+
+        <div class="glass p-5 mb-6">
+            <h3 class="text-[10px] font-bold uppercase mb-4 opacity-70">Withdrawal Portal (Min ₦5,000)</h3>
+            <div class="space-y-2">
+                <input id="wBank" type="text" placeholder="Bank Name" class="w-full p-3 rounded-lg text-xs outline-none">
+                <input id="wAccNum" type="number" placeholder="Account Number" class="w-full p-3 rounded-lg text-xs outline-none">
+                <input id="wAccName" type="text" placeholder="Account Name" class="w-full p-3 rounded-lg text-xs outline-none">
+                <input id="wAmount" type="number" placeholder="Amount (₦)" class="w-full p-3 rounded-lg text-xs outline-none">
+                <button onclick="handleWithdraw()" class="w-full py-4 bg-green-600 text-white rounded-xl font-bold text-[10px] uppercase">Process Withdrawal</button>
+            </div>
+        </div>
+
+        <h3 class="text-[10px] font-bold uppercase mb-3 opacity-60">Investment Packages</h3>
+        <div id="packageList" class="space-y-2 mb-10"></div>
+    </div>
+
+    <div id="adminDashboard" class="modal hidden">
+        <div class="bg-white dark:bg-zinc-900 w-full max-w-lg p-6 rounded-3xl h-[85vh] overflow-y-auto">
+            <div class="flex justify-between items-center mb-6 text-black dark:text-white">
+                <h2 class="font-black gold-text uppercase">Admin Terminal</h2>
+                <button onclick="closeAdmin()" class="text-red-500 font-bold">EXIT</button>
+            </div>
+            
+            <div class="p-4 glass mb-6 border border-yellow-500/20">
+                <p class="text-[10px] font-bold mb-2 uppercase text-black dark:text-white">Generate Code</p>
+                <select id="packageSelect" class="w-full p-2 mb-2 glass text-xs rounded-lg dark:bg-black text-black dark:text-white">
+                    <option value="Mini|3000">Mini (₦990) -> ₦3,000</option>
+                    <option value="Small|4000">Small (₦1900) -> ₦4,000</option>
+                    <option value="Average|5000">Average (₦3k) -> ₦5,000</option>
+                    <option value="Bronze|10000">Bronze (₦5k) -> ₦10,000</option>
+                    <option value="Silver|14000">Silver (₦7k) -> ₦14,000</option>
+                    <option value="Gold|20000">Gold (₦10k) -> ₦20,000</option>
+                    <option value="Massive|42000">Massive (₦20k) -> ₦42,000</option>
+                </select>
+                <button onclick="generateCode()" class="w-full py-2 bg-yellow-500 text-black font-bold rounded-lg text-xs uppercase">Create 31-Day Code</button>
+                <input id="genOutput" readonly class="w-full mt-2 p-2 bg-black/10 rounded text-center font-mono text-xs text-black dark:text-white">
+            </div>
+
+            <h3 class="text-[10px] font-bold mb-2 text-green-500 uppercase">Withdrawals</h3>
+            <div id="adminWithdrawals" class="space-y-2 mb-8"></div>
+
+            <h3 class="text-[10px] font-bold mb-2 text-blue-500 uppercase">User Base</h3>
+            <div id="adminUserList" class="space-y-2"></div>
+        </div>
+    </div>
+
+    <script>
+        const pkgs = [
+            {n:"Mini", p:990, r:3000}, {n:"Small", p:1900, r:4000}, {n:"Average", p:3000, r:5000},
+            {n:"Bronze", p:5000, r:10000}, {n:"Silver", p:7000, r:14000}, {n:"Gold", p:10000, r:20000},
+            {n:"Massive", p:20000, r:42000}
+        ];
+
+        let users = JSON.parse(localStorage.getItem('as_u')) || [];
+        let codes = JSON.parse(localStorage.getItem('as_c')) || [];
+        let wds = JSON.parse(localStorage.getItem('as_w')) || [];
+        let cur = null, ticker = null;
+
+        // AUTH
+        function showLogin() { document.getElementById('registerBox').classList.add('hidden'); document.getElementById('loginBox').classList.remove('hidden'); }
+        function showRegister() { document.getElementById('loginBox').classList.add('hidden'); document.getElementById('registerBox').classList.remove('hidden'); }
+
+        function handleRegister() {
+            const email = document.getElementById('regEmail').value;
+            const name = document.getElementById('regName').value;
+            const sur = document.getElementById('regSurname').value;
+            const ph = document.getElementById('regPhone').value;
+            const ps = document.getElementById('regPass').value;
+
+            if(!email || !name || !sur || !ph || !ps) return alert("All fields required.");
+            if(users.find(u => u.email === email)) return alert("User exists.");
+            
+            users.push({
+                email, name, surname: sur, phone: ph, pass: ps,
+                balance: 100.0000, licenseExpiry: 0, mineExpiry: 0, targetReturn: 0, activePkg: "", isBlocked: false
+            });
+            save(); alert("Registration Success! ₦100 Bonus Added."); showLogin();
+        }
+
+        function handleLogin() {
+            const user = users.find(u => u.email === document.getElementById('logEmail').value && u.pass === document.getElementById('logPass').value);
+            if(!user) return alert("Wrong Credentials.");
+            if(user.isBlocked) return alert("Account Blocked.");
+            cur = user; initDash();
+        }
+
+        // THEME
+        function toggleTheme() {
+            document.body.classList.toggle('dark-mode');
+            const icon = document.getElementById('themeIcon');
+            icon.classList.toggle('fa-moon');
+            icon.classList.toggle('fa-sun');
+        }
+
+        // DASHBOARD
+        function initDash() {
+            document.getElementById('authSection').classList.add('hidden');
+            document.getElementById('mainDashboard').classList.remove('hidden');
+            const list = document.getElementById('packageList'); list.innerHTML = '';
+            pkgs.forEach(p => {
+                list.innerHTML += `<div onclick="buyPkg('${p.n}',${p.p},${p.r})" class="p-4 glass flex justify-between text-[10px] font-bold cursor-pointer mb-2"><span>${p.n} (₦${p.p})</span><span class="gold-text">Profit ₦${p.r}</span></div>`;
+            });
+            updateUI();
+        }
+
+        function updateUI() {
+            document.getElementById('balanceDisplay').innerText = cur.balance.toFixed(4);
+            const now = Date.now();
+            if (cur.licenseExpiry > now) {
+                document.getElementById('activationArea').classList.add('hidden');
+                document.getElementById('miningArea').classList.remove('hidden');
+                document.getElementById('packageTag').innerText = "Running: " + cur.activePkg;
+                const days = Math.ceil((cur.licenseExpiry - now) / 86400000);
+                document.getElementById('expiryInfo').innerText = days + " Days Left";
+                if (cur.mineExpiry > now) startTicker(); else stopTicker();
+            } else {
+                document.getElementById('activationArea').classList.remove('hidden');
+                document.getElementById('miningArea').classList.add('hidden');
+                document.getElementById('timerDisplay').innerText = "LICENSE EXPIRED";
+            }
+        }
+
+        function startTicker() {
+            if(ticker) clearInterval(ticker);
+            document.getElementById('mineBtn').disabled = true;
+            document.getElementById('btnText').innerText = "MINING...";
+            const inc = (cur.targetReturn / 31) / 28800;
+            ticker = setInterval(() => {
+                if(Date.now() > cur.mineExpiry) { stopTicker(); updateUI(); }
+                else {
+                    cur.balance += inc;
+                    document.getElementById('balanceDisplay').innerText = cur.balance.toFixed(4);
+                    const rem = cur.mineExpiry - Date.now();
+                    document.getElementById('timerDisplay').innerText = `RESETS: ${new Date(rem).toISOString().substr(11, 8)}`;
+                }
+            }, 3000);
+        }
+
+        function stopTicker() { clearInterval(ticker); ticker = null; document.getElementById('mineBtn').disabled = false; document.getElementById('btnText').innerText = "START"; }
+
+        function handleWithdraw() {
+            const amt = parseFloat(document.getElementById('wAmount').value);
+            const bank = document.getElementById('wBank').value;
+            const num = document.getElementById('wAccNum').value;
+            const name = document.getElementById('wAccName').value;
+            if(!bank || !num || !name) return alert("Fill Bank Details.");
+            if(amt >= 5000 && cur.balance >= amt) {
+                wds.push({email: cur.email, amt, bank, num, name, date: new Date().toLocaleString()});
+                cur.balance -= amt; save(); updateUI(); alert("Submitted.");
+            } else alert("Min Withdrawal ₦5,000 required.");
+        }
+
+        // ADMIN ACCESS
+        function adminLoginPrompt() { 
+            if(prompt("AP") === "heavenlyfather1") { 
+                document.getElementById('adminDashboard').classList.remove('hidden'); 
+                renderAdmin(); 
+            }
+        }
+
+        function generateCode() {
+            const v = document.getElementById('packageSelect').value.split('|');
+            const c = "ASC-" + Math.floor(1000 + Math.random()*9000);
+            codes.push({code: c, name: v[0], ret: parseFloat(v[1])});
+            save(); document.getElementById('genOutput').value = c;
+        }
+
+        function activateLicense() {
+            const input = document.getElementById('activationCode').value;
+            const f = codes.find(x => x.code === input);
+            if(f) {
+                codes = codes.filter(x => x.code !== input);
+                cur.licenseExpiry = Date.now() + (31 * 86400000);
+                cur.targetReturn = f.ret; cur.activePkg = f.name;
+                save(); updateUI(); alert("Activated!");
+            } else alert("Invalid Code.");
+        }
+
+        function renderAdmin() {
+            const ul = document.getElementById('adminUserList'); ul.innerHTML = '';
+            users.forEach((u, i) => {
+                ul.innerHTML += `<div class="p-2 glass flex justify-between text-[10px] mb-1 items-center dark:text-white">
+                    <span>${u.email}<br>Bal: ₦${u.balance.toFixed(2)}</span>
+                    <button onclick="toggleBlock(${i})" class="px-2 py-1 rounded font-bold ${u.isBlocked ? 'bg-green-500':'bg-red-500'} text-white">
+                        ${u.isBlocked ? 'UNBLOCK':'BLOCK'}</button>
+                </div>`;
+            });
+            const wl = document.getElementById('adminWithdrawals'); wl.innerHTML = '';
+            wds.forEach((w, i) => {
+                wl.innerHTML += `<div class="p-2 glass text-[10px] mb-1 border-l-4 border-green-500 dark:text-white">
+                    ₦${w.amt} - ${w.bank} - ${w.num}<br>${w.name}<button onclick="delW(${i})" class="text-green-500 block mt-1">DONE</button>
+                </div>`;
+            });
+        }
+
+        function closeAdmin() { document.getElementById('adminDashboard').classList.add('hidden'); }
+        function save() { 
+            localStorage.setItem('as_u', JSON.stringify(users)); 
+            localStorage.setItem('as_c', JSON.stringify(codes)); 
+            localStorage.setItem('as_w', JSON.stringify(wds)); 
+        }
+        function toggleBlock(i) { users[i].isBlocked = !users[i].isBlocked; save(); renderAdmin(); }
+        function delW(i) { wds.splice(i, 1); save(); renderAdmin(); }
+        function startDailyMining() { cur.mineExpiry = Date.now() + 86400000; save(); updateUI(); }
+        function logout() { location.reload(); }
+        function buyPkg(n,p,r) { window.open(`https://wa.me/2348146281207?text=Interested in ${n} pkg`); }
+        setInterval(() => { if(!document.getElementById('adminDashboard').classList.contains('hidden')) renderAdmin(); }, 5000);
+    </script>
+</body>
+</html>
