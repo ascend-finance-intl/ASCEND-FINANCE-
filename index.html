@@ -91,19 +91,25 @@
             </div>
         </div>
 
+        <div class="flex gap-2 mb-10">
+            <button onclick="backupData()" class="flex-1 py-2 glass text-[10px] font-bold uppercase">Backup Data</button>
+            <button onclick="document.getElementById('restoreInput').click()" class="flex-1 py-2 glass text-[10px] font-bold uppercase">Restore Data</button>
+            <input type="file" id="restoreInput" class="hidden" onchange="restoreData(this)">
+        </div>
+
         <h3 class="text-[10px] font-bold uppercase mb-3 opacity-60">Investment Packages</h3>
         <div id="packageList" class="space-y-2 mb-10"></div>
     </div>
 
     <div id="adminDashboard" class="modal hidden">
         <div class="bg-white dark:bg-zinc-900 w-full max-w-lg p-6 rounded-3xl h-[85vh] overflow-y-auto">
-            <div class="flex justify-between items-center mb-6 text-black dark:text-white">
+            <div class="flex justify-between items-center mb-6">
                 <h2 class="font-black gold-text uppercase">Admin Terminal</h2>
                 <button onclick="closeAdmin()" class="text-red-500 font-bold">EXIT</button>
             </div>
             
             <div class="p-4 glass mb-6 border border-yellow-500/20">
-                <p class="text-[10px] font-bold mb-2 uppercase text-black dark:text-white">Generate Code</p>
+                <p class="text-[10px] font-bold mb-2 uppercase">Generate Code</p>
                 <select id="packageSelect" class="w-full p-2 mb-2 glass text-xs rounded-lg dark:bg-black text-black dark:text-white">
                     <option value="Mini|3000">Mini (₦990) -> ₦3,000</option>
                     <option value="Small|4000">Small (₦1900) -> ₦4,000</option>
@@ -118,13 +124,14 @@
             </div>
 
             <h3 class="text-[10px] font-bold mb-2 text-green-500 uppercase">Withdrawals</h3>
-            <div id="adminWithdrawals" class="space-y-2 mb-8"></div>
+            <div id="adminWithdrawals" class="space-y-2 mb-8 text-black dark:text-white"></div>
             <h3 class="text-[10px] font-bold mb-2 text-blue-500 uppercase">User Base</h3>
-            <div id="adminUserList" class="space-y-2"></div>
+            <div id="adminUserList" class="space-y-2 text-black dark:text-white"></div>
         </div>
     </div>
 
     <script>
+        const MASTER_KEY = "HEAVENLY_777";
         const pkgs = [
             {n:"Mini", p:990, r:3000}, {n:"Small", p:1900, r:4000}, {n:"Average", p:3000, r:5000},
             {n:"Bronze", p:5000, r:10000}, {n:"Silver", p:7000, r:14000}, {n:"Gold", p:10000, r:20000},
@@ -132,13 +139,10 @@
         ];
 
         let users = JSON.parse(localStorage.getItem('as_u')) || [];
-        let codes = JSON.parse(localStorage.getItem('as_c')) || [];
         let wds = JSON.parse(localStorage.getItem('as_w')) || [];
         let cur = null, ticker = null;
 
-        function showLogin() { document.getElementById('registerBox').classList.add('hidden'); document.getElementById('loginBox').classList.remove('hidden'); }
-        function showRegister() { document.getElementById('loginBox').classList.add('hidden'); document.getElementById('registerBox').classList.remove('hidden'); }
-
+        // AUTH
         function handleRegister() {
             const email = document.getElementById('regEmail').value;
             if(!email || !document.getElementById('regName').value) return alert("Fill all fields");
@@ -146,21 +150,18 @@
             users.push({
                 email, name: document.getElementById('regName').value, surname: document.getElementById('regSurname').value,
                 phone: document.getElementById('regPhone').value, pass: document.getElementById('regPass').value,
-                balance: 100.0000, licenseExpiry: 0, mineExpiry: 0, targetReturn: 0, activePkg: "", isBlocked: false,
-                lastUpdate: Date.now()
+                balance: 100.0000, licenseExpiry: 0, mineExpiry: 0, targetReturn: 0, activePkg: "", isBlocked: false, lastUpdate: Date.now()
             });
             save(); alert("Success! ₦100 Bonus Added."); showLogin();
         }
 
         function handleLogin() {
             const user = users.find(u => u.email === document.getElementById('logEmail').value && u.pass === document.getElementById('logPass').value);
-            if(!user) return alert("Wrong Credentials");
-            if(user.isBlocked) return alert("Account Blocked");
-            cur = user;
-            calculateOfflineEarnings();
-            initDash();
+            if(!user || user.isBlocked) return alert("Access Denied");
+            cur = user; calculateOfflineEarnings(); initDash();
         }
 
+        // MINING ENGINE (1s)
         function calculateOfflineEarnings() {
             const now = Date.now();
             if (cur.mineExpiry > cur.lastUpdate) {
@@ -171,26 +172,81 @@
                     cur.balance += (earningsPerSec * secondsPassed);
                 }
             }
-            cur.lastUpdate = now;
-            save();
+            cur.lastUpdate = now; save();
         }
 
-        function toggleTheme() {
-            document.body.classList.toggle('dark-mode');
-            const icon = document.getElementById('themeIcon');
-            icon.classList.toggle('fa-moon'); icon.classList.toggle('fa-sun');
+        function startTicker() {
+            if(ticker) clearInterval(ticker);
+            const earningsPerSec = (cur.targetReturn / 31) / 86400;
+            ticker = setInterval(() => {
+                const now = Date.now();
+                if(now > cur.mineExpiry) { stopTicker(); updateUI(); }
+                else {
+                    cur.balance += earningsPerSec;
+                    cur.lastUpdate = now;
+                    document.getElementById('balanceDisplay').innerText = cur.balance.toFixed(4);
+                    const rem = cur.mineExpiry - now;
+                    document.getElementById('timerDisplay').innerText = `RESETS: ${new Date(rem).toISOString().substr(11, 8)}`;
+                    if (Math.floor(now/1000) % 5 === 0) save();
+                }
+            }, 1000);
         }
 
+        // ACTIVATION MATH (The Cross-Phone Fix)
+        function generateCode() {
+            const v = document.getElementById('packageSelect').value.split('|');
+            const pkgName = v[0];
+            const salt = Math.floor(1000 + Math.random() * 9000);
+            const hash = btoa(pkgName + salt + MASTER_KEY).substring(0, 4).toUpperCase();
+            document.getElementById('genOutput').value = `ASC-${pkgName.toUpperCase()}-${salt}-${hash}`;
+        }
+
+        function activateLicense() {
+            const input = document.getElementById('activationCode').value.trim();
+            if(!input.startsWith("ASC-")) return alert("Invalid Format");
+            const parts = input.split("-");
+            const pkgData = pkgs.find(p => p.n.toUpperCase() === parts[1]);
+            if(!pkgData) return alert("Invalid Package");
+            const validHash = btoa(pkgData.n + parts[2] + MASTER_KEY).substring(0, 4).toUpperCase();
+            if (parts[3] === validHash) {
+                cur.licenseExpiry = Date.now() + (31 * 86400000);
+                cur.targetReturn = pkgData.r; cur.activePkg = pkgData.n;
+                save(); updateUI(); alert("Activated!");
+                document.getElementById('activationCode').value = "";
+            } else alert("Invalid Code.");
+        }
+
+        // BACKUP SYSTEM
+        function backupData() {
+            const data = JSON.stringify({users, wds});
+            const blob = new Blob([data], {type: "application/json"});
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url; a.download = "ascend_backup.json"; a.click();
+        }
+
+        function restoreData(input) {
+            const reader = new FileReader();
+            reader.onload = function(){
+                const data = JSON.parse(reader.result);
+                users = data.users; wds = data.wds;
+                save(); alert("Data Restored!"); location.reload();
+            };
+            reader.readAsText(input.files[0]);
+        }
+
+        // HELPERS
+        function save() { localStorage.setItem('as_u', JSON.stringify(users)); localStorage.setItem('as_w', JSON.stringify(wds)); }
+        function showLogin() { document.getElementById('registerBox').classList.add('hidden'); document.getElementById('loginBox').classList.remove('hidden'); }
+        function showRegister() { document.getElementById('loginBox').classList.add('hidden'); document.getElementById('registerBox').classList.remove('hidden'); }
+        function toggleTheme() { document.body.classList.toggle('dark-mode'); const icon = document.getElementById('themeIcon'); icon.classList.toggle('fa-moon'); icon.classList.toggle('fa-sun'); }
         function initDash() {
             document.getElementById('authSection').classList.add('hidden');
             document.getElementById('mainDashboard').classList.remove('hidden');
             const list = document.getElementById('packageList'); list.innerHTML = '';
-            pkgs.forEach(p => {
-                list.innerHTML += `<div onclick="buyPkg('${p.n}',${p.p},${p.r})" class="p-4 glass flex justify-between text-[10px] font-bold cursor-pointer mb-2"><span>${p.n} (₦${p.p})</span><span class="gold-text">Profit ₦${p.r}</span></div>`;
-            });
+            pkgs.forEach(p => { list.innerHTML += `<div onclick="buyPkg('${p.n}',${p.p},${p.r})" class="p-4 glass flex justify-between text-[10px] font-bold cursor-pointer mb-2"><span>${p.n} (₦${p.p})</span><span class="gold-text">Profit ₦${p.r}</span></div>`; });
             updateUI();
         }
-
         function updateUI() {
             document.getElementById('balanceDisplay').innerText = cur.balance.toFixed(4);
             const now = Date.now();
@@ -207,65 +263,24 @@
                 document.getElementById('timerDisplay').innerText = "LICENSE EXPIRED";
             }
         }
-
-        function startTicker() {
-            if(ticker) clearInterval(ticker);
-            document.getElementById('mineBtn').disabled = true;
-            document.getElementById('btnText').innerText = "MINING...";
-            const earningsPerSec = (cur.targetReturn / 31) / 86400;
-            ticker = setInterval(() => {
-                const now = Date.now();
-                if(now > cur.mineExpiry) { stopTicker(); updateUI(); }
-                else {
-                    cur.balance += earningsPerSec;
-                    cur.lastUpdate = now;
-                    document.getElementById('balanceDisplay').innerText = cur.balance.toFixed(4);
-                    const rem = cur.mineExpiry - now;
-                    document.getElementById('timerDisplay').innerText = `RESETS: ${new Date(rem).toISOString().substr(11, 8)}`;
-                    if (Math.floor(now/1000) % 5 === 0) save();
-                }
-            }, 1000); // FIXED: 1 second interval
-        }
-
-        function stopTicker() { clearInterval(ticker); ticker = null; document.getElementById('mineBtn').disabled = false; document.getElementById('btnText').innerText = "START"; }
-
         function startDailyMining() { cur.mineExpiry = Date.now() + 86400000; cur.lastUpdate = Date.now(); save(); updateUI(); }
-
         function handleWithdraw() {
             const amt = parseFloat(document.getElementById('wAmount').value);
-            if(amt >= 5000 && cur.balance >= amt) { // FIXED: 5000 min rule
+            if(amt >= 5000 && cur.balance >= amt) {
                 wds.push({email: cur.email, amt, bank: document.getElementById('wBank').value, num: document.getElementById('wAccNum').value, name: document.getElementById('wAccName').value, date: new Date().toLocaleString()});
                 cur.balance -= amt; save(); updateUI(); alert("Submitted.");
-            } else alert("Min Withdrawal ₦5,000 required.");
+            } else alert("Min ₦5,000 required.");
         }
-
         function adminLoginPrompt() { if(prompt("AP") === "heavenlyfather1") { document.getElementById('adminDashboard').classList.remove('hidden'); renderAdmin(); } }
-        function generateCode() {
-            const v = document.getElementById('packageSelect').value.split('|');
-            const c = "ASC-" + Math.floor(1000 + Math.random()*9000);
-            codes.push({code: c, name: v[0], ret: parseFloat(v[1])});
-            save(); document.getElementById('genOutput').value = c;
-        }
-        function activateLicense() {
-            const input = document.getElementById('activationCode').value;
-            const f = codes.find(x => x.code === input);
-            if(f) {
-                codes = codes.filter(x => x.code !== input);
-                cur.licenseExpiry = Date.now() + (31 * 86400000); // 31-day cycle rule
-                cur.targetReturn = f.ret; cur.activePkg = f.name;
-                save(); updateUI(); alert("Activated!");
-            } else alert("Invalid Code.");
-        }
-
         function renderAdmin() {
             const ul = document.getElementById('adminUserList'); ul.innerHTML = '';
             users.forEach((u, i) => { ul.innerHTML += `<div class="p-2 glass flex justify-between text-[10px] mb-1"><span>${u.email}<br>Bal: ₦${u.balance.toFixed(2)}</span><button onclick="toggleBlock(${i})" class="px-2 py-1 rounded ${u.isBlocked ? 'bg-green-500':'bg-red-500'} text-white">${u.isBlocked ? 'UNBLOCK':'BLOCK'}</button></div>`; });
             const wl = document.getElementById('adminWithdrawals'); wl.innerHTML = '';
             wds.forEach((w, i) => { wl.innerHTML += `<div class="p-2 glass text-[10px] mb-1">₦${w.amt} - ${w.bank} - ${w.num}<br>${w.name}<button onclick="delW(${i})" class="text-green-500 block">DONE</button></div>`; });
         }
-        function save() { localStorage.setItem('as_u', JSON.stringify(users)); localStorage.setItem('as_c', JSON.stringify(codes)); localStorage.setItem('as_w', JSON.stringify(wds)); }
         function toggleBlock(i) { users[i].isBlocked = !users[i].isBlocked; save(); renderAdmin(); }
         function delW(i) { wds.splice(i, 1); save(); renderAdmin(); }
+        function stopTicker() { clearInterval(ticker); ticker = null; document.getElementById('mineBtn').disabled = false; document.getElementById('btnText').innerText = "START"; }
         function logout() { location.reload(); }
         function buyPkg(n,p,r) { window.open(`https://wa.me/2348146281207?text=Interested in ${n} pkg`); }
         function closeAdmin() { document.getElementById('adminDashboard').classList.add('hidden'); }
